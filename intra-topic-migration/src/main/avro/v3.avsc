@@ -1,0 +1,12 @@
+{
+  "type": "record",
+  "namespace": "io.spoud.avro",
+  "name": "Person3",
+  "version": "3",
+  "fields": [
+    {
+      "name": "uid",
+      "type": "string"
+    }
+  ]
+}

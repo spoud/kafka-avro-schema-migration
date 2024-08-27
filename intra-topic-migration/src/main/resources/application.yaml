@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: multi-schema-deserializer
+
+  kafka:
+    consumer:
+      group-id: demo
+      key-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
+      properties:
+        avro.remove.java.properties: true
+        specific.avro.reader: false # use generic records
+      auto-offset-reset: earliest
+    producer:
+      value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+    properties:
+      schema.registry.url: http://localhost:8081

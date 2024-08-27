@@ -1,0 +1,8 @@
+@startuml
+'https://plantuml.com/component-diagram
+
+queue persons
+[v1Producer] -> persons
+[v2Producer] --> persons
+[v2Consumer] <-- persons
+@enduml
