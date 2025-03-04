@@ -1,3 +1,20 @@
 spring:
   application:
     name: inter-topic-migration
+  kafka:
+    bootstrap-servers: localhost:9092
+    streams:
+      properties:
+        application.id: inter-topic-migration
+        schema.registry.url: http://localhost:8081
+        default.key.serde: org.apache.kafka.common.serialization.Serdes$StringSerde
+        default.value.serde: io.confluent.kafka.streams.serdes.avro.SpecificAvroSerde
+    consumer:
+      group-id: demoConsumer
+      properties:
+        schema.registry.url: http://localhost:8081
+        specific.avro.reader: true
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
+      auto-offset-reset: earliest
+

@@ -2,7 +2,7 @@
   "type": "record",
   "namespace": "io.spoud.avro",
   "aliases": ["io.spoud.avro.Person"],
-  "name": "PersonV1",
+  "name": "Person",
   "version": "1",
   "fields": [
     {

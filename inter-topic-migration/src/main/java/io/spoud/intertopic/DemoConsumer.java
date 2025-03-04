@@ -1,35 +1,34 @@
 package io.spoud.intertopic;
 
-import io.spoud.avro.Person2;
+import io.spoud.avro.Person;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxSink;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import static io.spoud.intertopic.InterTopicMigrationApplication.TOPIC_V2;
 
 @Component
 public class DemoConsumer {
 
-    private final Flux<Person2> persons;
-    private FluxSink<Person2> sink;
+    private final List<Person> persons = new ArrayList<>();
 
     public DemoConsumer() {
-        persons = Flux.create(objectFluxSink -> {
-            this.sink = objectFluxSink;
-        });
     }
 
-    @KafkaListener(topics = {"persons"})
-    private void consumeMultipleVersions(ConsumerRecord<String, Person2> record) {
+    @KafkaListener(topics = TOPIC_V2)
+    private void consumeV2(ConsumerRecord<String, Person> record) {
         try {
-            this.sink.next(record.value());
             System.out.printf("topic: %s, email: %s%n", record.topic(), record.value().getEmail());
+            this.persons.add(record.value());
         } catch (Exception e) {
-            this.sink.error(e);
+            e.printStackTrace();
         }
     }
 
-    public Flux<Person2> getPersons() {
+    public List<Person> getPersons() {
         return persons;
     }
 }

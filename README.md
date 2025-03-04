@@ -30,3 +30,8 @@ Requires Confluent Platform (enterprise version) or Confluent Cloud.
 * consumer fetches new schema + rules from Schema Registry and applies them transparently
 
 See https://docs.confluent.io/platform/current/schema-registry/fundamentals/data-contracts.html#custom-rules
+
+
+## Schema Registry Configuration
+
+enforce compatibility for major version only
