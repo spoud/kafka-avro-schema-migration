@@ -13,4 +13,4 @@ spring:
       value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
     properties:
-      schema.registry.url: http://localhost:8081
+      schema.registry.url: mock://schemaregistry

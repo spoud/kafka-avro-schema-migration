@@ -10,6 +10,8 @@ import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
+import org.springframework.kafka.listener.CommonContainerStoppingErrorHandler;
+import org.springframework.kafka.listener.CommonErrorHandler;
 
 @EnableKafka
 @Configuration
@@ -37,8 +39,10 @@ public class KafkaConsumerConfiguration {
     @Bean
     public ConcurrentKafkaListenerContainerFactory<String, Person2>
     kafkaListenerContainerFactory(KafkaProperties properties) {
+        CommonErrorHandler errorHandler = new CommonContainerStoppingErrorHandler();
         ConcurrentKafkaListenerContainerFactory<String, Person2> factory = new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(migratingConsumerFactory(properties));
+        factory.setCommonErrorHandler(errorHandler);
         return factory;
     }
 }

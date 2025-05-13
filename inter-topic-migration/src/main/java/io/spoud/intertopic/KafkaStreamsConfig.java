@@ -46,8 +46,8 @@ public class KafkaStreamsConfig {
         var email = String.format("%s.%s@%s", person.get("first_name"), person.get("last_name"), person.get("company_domain"));
         return Person.newBuilder()
                 .setEmail(email)
-                .setFirstName((String) person.get("first_name"))
-                .setLastName((String) person.get("last_name"))
+                .setFirstName(person.get("first_name").toString())
+                .setLastName(person.get("last_name").toString())
                 .build();
     }
 }

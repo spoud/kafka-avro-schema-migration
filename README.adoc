@@ -1,0 +1,149 @@
+= AVRO Schema evolution - handling incompatible versions in Kafka consumers
+
+AVRO Schemas evolve over time, but sometimes it is not possible to achieve backwards or forward compatibility of new schemas.
+
+We demonstrate approaches to deal with such breaking changes using exemplary Spring Boot implementations.
+
+
+== Option 1: inter-topic migration
+
+[plantuml,opts=inline,format=svg]
+----
+@startuml
+
+skinparam componentStyle rectangle
+skinparam backgroundColor #f9f9f9
+skinparam component {
+    BackgroundColor<<producer>> #cfe2f3
+    BackgroundColor<<consumer>> #d9ead3
+    BackgroundColor<<service>> #fff2cc
+    BorderColor Black
+}
+
+component "Producer V1" <<producer>>
+component "Producer V2" <<producer>>
+component "v1-topic"
+component "Migration Service" <<service>>
+component "v2-topic"
+component "Consumer V2" <<consumer>>
+component "Consumer V1" <<consumer>>
+
+"Producer V1" --> "v1-topic" : writes v1 messages
+"Producer V2" --> "v2-topic" : writes v2 messages
+"v1-topic" --> "Migration Service" : reads
+"Migration Service" --> "v2-topic" : writes v2 messages
+"Consumer V2" --> "v2-topic" : reads
+"Consumer V1" --> "v1-topic" : reads
+
+@enduml
+----
+
+In this pattern, the migration is done via a dedicated migration-service that reads v1 messages from a v1-topic, transforms them to the new format, and writes them to a v2-topic.
+
+Eventually the V1-producer is replaced with a V2-producer.
+The migration-service and v1-topic can then be deleted.
+
+== Option 2: intra-topic migration with consumer logic
+
+[plantuml,opts=inline,format=svg]
+----
+@startuml
+skinparam componentStyle rectangle
+skinparam backgroundColor #f9f9f9
+skinparam component {
+    BackgroundColor<<producer>> #cfe2f3
+    BackgroundColor<<consumer>> #d9ead3
+    BorderColor Black
+}
+
+component "Producer V1" <<producer>>
+component "Producer V2" <<producer>>
+component "shared-topic"
+component "Consumer V2 \n(with v1 to v2 mapping logic)" <<consumer>> as consumer
+
+"Producer V1" --> "shared-topic" : writes v1
+"Producer V2" --> "shared-topic" : writes v2
+consumer --> "shared-topic" : reads both
+
+@enduml
+----
+
+
+Here, all schema versions are written to a single Kafka topic.
+The consumer includes a custom deserializer with logic to handle both v1 and v2 formats during the migration.
+V1 records are mapped to the new v2 schema in the deserializer.
+Once v1 producers are deprecated, the additional consumer logic can be removed (i.e. switching back from the custom deserializer to the `KafkaAvroDeserializer`).
+
+== Option 3: intra-topic migration with confluent schema contracts
+
+[plantuml,opts=inline,format=svg]
+----
+@startuml
+skinparam componentStyle rectangle
+skinparam backgroundColor #f9f9f9
+skinparam component {
+    BackgroundColor<<producer>> #cfe2f3
+    BackgroundColor<<consumer>> #d9ead3
+    BackgroundColor<<registry>> #f4cccc
+    BorderColor Black
+}
+
+component "Producer V1" <<producer>>
+component "Producer V2" <<producer>>
+component "shared-topic"
+component "Consumer V2 \n(auto-mapping)" <<consumer>>
+component "Schema Registry\n(with rules)" <<registry>>
+
+"Producer V1" --> "shared-topic" : writes v1
+"Producer V2" --> "shared-topic" : writes v2
+"Consumer V2 \n(auto-mapping)" --> "shared-topic" : reads
+"Consumer V2 \n(auto-mapping)" --> "Schema Registry\n(with rules)" : fetch schema + rules
+
+@enduml
+
+----
+
+This approach uses Confluent’s Schema Registry with custom migration rules (e.g., CEL and Jsonata).
+Conceptionally this approach is similar to option 2, however the migration logic is not sotred directly in the consumer, but as part of the Schema inside the Schema Registry.
+The consumer automatically fetches these migration rules and applies the schema transformations when is reads v1 messages. This enables seamless consumption of multiple versions.
+
+To use this feature, either Confluent Platform (enterprise version) or Confluent Cloud are required.
+
+See https://docs.confluent.io/platform/current/schema-registry/fundamentals/data-contracts.html#custom-rules[the documentation for Confluent Schema Registry Data Contracts] for an in-depth explanation of how to use this feature.
+
+
+== Schema Registry Configuration
+
+The schema compatibility checks in Confluent Schema Registry prevent the registration of incompatible schemas.
+As an alternative to temporarily setting the compatibility mode to None, you can also use the `compatibilityGroup` setting for the subject.
+
+Add metadata with the major version:
+
+[source,json]
+.schema registration request payload
+----
+{
+  "schema": "...",
+  "metadata": {
+    "properties": {
+      "app.major.version": "2"
+    }
+  }
+}
+----
+
+Configure the compatibility group
+
+[source,bash]
+.setting compatibility mode
+----
+curl -X PUT http://localhost:8081/config/my-subject \
+  -H "Content-Type: application/vnd.schemaregistry.v1+json" \
+  -d '{
+    "compatibilityGroup": "app.major.version",
+    "compatibility": "BACKWARD"
+  }'
+----
+
+With this setup, schemas with the same `app.major.version` must be backward compatible.
+Schemas with different major versions (e.g. 1 vs 2) can be incompatible, allowing controlled breaking changes.

@@ -33,21 +33,22 @@ public class MultiSchemaDeserializer<V1 extends SpecificRecord, V2 extends Speci
         this.mapV1ToV2 = mapV1ToV2;
     }
 
-    @Override
-    public void configure(Map configs, boolean isKey) {
-        if("true".equals(configs.get(KafkaAvroDeserializerConfig.SPECIFIC_AVRO_READER_CONFIG))) {
 
-        }
+    @Override
+    @SuppressWarnings("unchecked")
+    public void configure(Map configs, boolean isKey) {
+        // deserialize to generic records in underlying deserializer
+        configs.put(KafkaAvroDeserializerConfig.SPECIFIC_AVRO_READER_CONFIG, "false");
         this.avroDeserializer.configure(configs, isKey);
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public V2 deserialize(String topic, byte[] data) {
         try {
             GenericRecord o = (GenericRecord) this.avroDeserializer.deserialize(topic, data);
             if (o.getSchema().getProp("version").equals("2")) {
-                V2 v2 = (V2) new SpecificDatumReader<V2>().getSpecificData().deepCopy(o.getSchema(), o);
-                return v2;
+                return (V2) new SpecificDatumReader<V2>().getSpecificData().deepCopy(o.getSchema(), o);
             } else {
                 V1 v1 = (V1) new SpecificDatumReader<V1>().getSpecificData().deepCopy(o.getSchema(), o);
                 return mapV1ToV2.apply(v1);

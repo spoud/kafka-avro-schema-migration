@@ -3,16 +3,20 @@ package io.spoud.intratopic;
 import io.spoud.avro.Person2;
 import io.spoud.avro.Person3;
 import io.spoud.avro.Person;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.listener.MessageListenerContainer;
 import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.test.annotation.DirtiesContext;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -27,6 +31,9 @@ class IntraTopicMigrationApplicationTests {
     private DemoConsumer consumer;
 
     @Autowired
+    private KafkaListenerEndpointRegistry kafkaListenerEndpointRegistry;
+
+    @Autowired
     private KafkaTemplate<String, Person> producer1;
 
     @Autowired
@@ -35,9 +42,15 @@ class IntraTopicMigrationApplicationTests {
     @Autowired
     private KafkaTemplate<String, Person3> producer3;
 
+
+    @BeforeEach
+    void setUp() {
+        consumer.clearPersons();
+    }
+
     @Test
     @DisplayName("should map v1 records to v2 records transparently")
-    void testV1toV2Mapping() {
+    void testV1toV2Mapping() throws InterruptedException {
         this.producer1.send("persons", "p1", Person.newBuilder()
                 .setFirstName("John")
                 .setLastName("Doe")
@@ -50,7 +63,9 @@ class IntraTopicMigrationApplicationTests {
                 .build();
         this.producer2.send("persons", "p2", p2);
 
-        assertThat(consumer.getPersons().take(2).collectList().block()).containsExactlyInAnyOrder(
+        Thread.sleep(1000);
+
+        assertThat(consumer.getPersons()).containsExactlyInAnyOrder(
                 Person2.newBuilder()
                         .setFirstName("John")
                         .setLastName("Doe")
@@ -61,14 +76,15 @@ class IntraTopicMigrationApplicationTests {
     }
 
     @Test
-    @DisplayName("should fail for for unrecognized record/schema types")
-    void testUnsupportedSchema() {
+    @DisplayName("should fail for unrecognized record/schema types")
+    void testUnsupportedSchema() throws InterruptedException {
         Person3 p3 = Person3.newBuilder()
                 .setUid(UUID.randomUUID().toString())
                 .build();
         this.producer3.send("persons", "p3", p3);
-        assertThatThrownBy(() -> consumer.getPersons()
-                .blockFirst(Duration.of(500, ChronoUnit.MILLIS))
-        ).isInstanceOf(IllegalStateException.class);
+        Thread.sleep(1000);
+        assertThat(consumer.getPersons()).hasSize(0);
+        MessageListenerContainer container = kafkaListenerEndpointRegistry.getAllListenerContainers().iterator().next();
+        assertThat(container.isRunning()).isFalse();
     }
 }
