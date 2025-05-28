@@ -7,6 +7,7 @@ spring:
       properties:
         application.id: inter-topic-migration
         schema.registry.url: http://localhost:8081
+        avro.remove.java.properties: true
         default.key.serde: org.apache.kafka.common.serialization.Serdes$StringSerde
         default.value.serde: io.confluent.kafka.streams.serdes.avro.SpecificAvroSerde
     consumer:
@@ -14,6 +15,7 @@ spring:
       properties:
         schema.registry.url: http://localhost:8081
         specific.avro.reader: true
+        avro.remove.java.properties: true
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
       auto-offset-reset: earliest

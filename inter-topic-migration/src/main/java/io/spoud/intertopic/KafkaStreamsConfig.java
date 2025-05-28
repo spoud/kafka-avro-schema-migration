@@ -37,7 +37,9 @@ public class KafkaStreamsConfig {
 
         // read from topic v1
         KStream<String, GenericRecord> old = builder.stream(TOPIC_V1, Consumed.with(new Serdes.StringSerde(), genericAvroSerde));
-        old.mapValues((key, person) -> mapToV2(person)).to(TOPIC_V2);
+        KStream<String, Person> mapped = old.mapValues((key, person) -> mapToV2(person));
+        // write to v2
+        mapped.to(TOPIC_V2);
         return builder.build();
 
     }

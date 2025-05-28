@@ -14,3 +14,4 @@ spring:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
     properties:
       schema.registry.url: http://localhost:8081
+      avro.remove.java.properties: true

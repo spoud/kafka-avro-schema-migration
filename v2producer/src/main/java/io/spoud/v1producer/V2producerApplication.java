@@ -24,10 +24,10 @@ public class V2producerApplication implements CommandLineRunner {
     @Override
     public void run(String... args) throws Exception {
         for (int i = 0; i < 10; i++) {
-            kTemplate.send("persons", "p" + i, Person.newBuilder()
+            kTemplate.send("persons.v2", "p" + i, Person.newBuilder()
                     .setFirstName("First" + i)
                     .setLastName("Last")
-                    .setCompanyDomain("example.com")
+                    .setEmail("foo@example.com")
                     .build())
                     .get(2000, TimeUnit.MILLISECONDS);
         }

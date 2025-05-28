@@ -35,13 +35,15 @@ public class MultiSchemaDeserializer<V1 extends SpecificRecord, V2 extends Speci
 
 
     @Override
-    @SuppressWarnings("unchecked")
     public void configure(Map configs, boolean isKey) {
         // deserialize to generic records in underlying deserializer
         configs.put(KafkaAvroDeserializerConfig.SPECIFIC_AVRO_READER_CONFIG, "false");
         this.avroDeserializer.configure(configs, isKey);
     }
 
+    /**
+     * Deserialize bytes that were written with the v1 and v2 schema into a v2 SpecificRecord
+     */
     @Override
     @SuppressWarnings("unchecked")
     public V2 deserialize(String topic, byte[] data) {

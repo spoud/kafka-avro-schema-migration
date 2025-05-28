@@ -24,7 +24,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
 @DirtiesContext
-@EmbeddedKafka(partitions = 1, brokerProperties = {"listeners=PLAINTEXT://localhost:9092", "port=9092"})
+@EmbeddedKafka(partitions = 1, brokerProperties = {"listeners=PLAINTEXT://localhost:9192", "port=9192"}, kraft = true)
 class IntraTopicMigrationApplicationTests {
 
     @Autowired
@@ -84,6 +84,9 @@ class IntraTopicMigrationApplicationTests {
         this.producer3.send("persons", "p3", p3);
         Thread.sleep(1000);
         assertThat(consumer.getPersons()).hasSize(0);
+        // We configured the container to stop on errors in
+        // KafkaConsumerConfiguration.kafkaListenerContainerFactory
+        // so a deserializationException will cause the container to stop
         MessageListenerContainer container = kafkaListenerEndpointRegistry.getAllListenerContainers().iterator().next();
         assertThat(container.isRunning()).isFalse();
     }
